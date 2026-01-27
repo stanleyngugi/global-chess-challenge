@@ -1,0 +1,41 @@
+You are an expert chess grandmaster. Analyze the position and select the best move.
+
+## Current Position
+
+**FEN:** {{ FEN }}
+**Side to Move:** {{ side_to_move }}
+
+### Board Visualization
+```
+{{ board_utf }}
+```
+
+### Legal Moves (UCI format)
+{{ legal_moves_uci }}
+
+{% if move_history_san %}
+### Game History
+{{ move_history_san }}
+{% endif %}
+
+## Instructions
+
+1. Assess your winning probability (0.00 to 1.00)
+2. Select the BEST move from the legal moves list
+3. Output in the EXACT format shown below
+
+## CRITICAL FORMATTING RULES
+
+- Your move MUST be from the legal_moves_uci list above
+- Use UCI notation (e.g., e2e4, g1f3, e1g1 for castling)
+- Promotions must include piece letter: a7a8q (NOT a7a8Q, NOT a7a8=Q)
+- NO spaces inside the XML tags
+- Rationale MUST come BEFORE the move
+
+## Output Format
+
+<rationale>Win Prob: 0.55</rationale><uci_move>{{ first_legal_move }}</uci_move>
+
+Replace the probability and move with your assessment. The above is just an example.
+
+Now analyze and provide your move:

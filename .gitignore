@@ -1,0 +1,60 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Training outputs (large files)
+output/
+*.pt
+*.bin
+*.safetensors
+checkpoints/
+
+# HuggingFace cache
+hf_cache/
+
+# Logs
+*.log
+logs/
+
+# Data files (too large for git - must upload separately)
+# train.jsonl is 617MB - exceeds GitHub 100MB limit
+src/division2/data/train.jsonl
+src/division2/data/train\ (1).jsonl
+src/division2/data/val\ (1).jsonl
+
+# Executables
+*.exe
+
+# PowerShell scripts (local only)
+*.ps1
+
+# Secrets (NEVER commit)
+.env
+*.token
+secrets/
+
+# Windows artifacts
+nul
+nul.*

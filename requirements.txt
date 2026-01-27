@@ -1,0 +1,127 @@
+# =============================================================================
+# Global Chess Challenge 2025 - Production Requirements
+# =============================================================================
+# 
+# PINNED VERSIONS based on deep research for:
+# - RunPod A40 training (CUDA 12.x)
+# - AWS Trainium deployment compatibility
+# - Llama 3.1 architecture support
+#
+# CRITICAL: Install in this exact order to prevent version conflicts
+#
+# Install:
+#   pip install --upgrade pip
+#   pip install numpy==1.26.4
+#   pip install -r requirements.txt
+#
+# NOTE: AWS Trainium inference uses pre-configured Neuron AMI
+#       You only submit model weights + prompt template to competition
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# CRITICAL: NumPy must be <2.0 for AWS Neuron SDK compatibility
+# NumPy 2.0 breaks ABI and causes issues with Trainium deployment
+# -----------------------------------------------------------------------------
+numpy==1.26.4
+
+# -----------------------------------------------------------------------------
+# Core PyTorch - Use cu124 wheels for RunPod A40 (CUDA 12.4)
+# Install separately with: pip install torch==2.4.1+cu124 --index-url https://download.pytorch.org/whl/cu124
+# -----------------------------------------------------------------------------
+# torch==2.4.1+cu124  # Install from PyTorch index, not PyPI
+
+# -----------------------------------------------------------------------------
+# Transformers - CRITICAL VERSION WINDOW
+# Must be >=4.43.3 for Llama 3.1 RoPE scaling support
+# Must be <4.48 for AWS Neuron SDK compatibility
+# 4.46.1 is the tested stable version
+# -----------------------------------------------------------------------------
+transformers==4.46.1
+
+# -----------------------------------------------------------------------------
+# PEFT - LoRA training and merging
+# 0.13.0 has stable merge_and_unload() for Llama 3
+# Avoid 0.14.0 due to reported regressions
+# -----------------------------------------------------------------------------
+peft==0.13.0
+
+# -----------------------------------------------------------------------------
+# Accelerate - Model parallelism and device mapping
+# 0.34.2 is stable companion for transformers 4.46.x
+# -----------------------------------------------------------------------------
+accelerate==0.34.2
+
+# -----------------------------------------------------------------------------
+# Tokenizers - Rust backend for transformers
+# 0.20.1 correctly handles Llama 3.1 special tokens
+# -----------------------------------------------------------------------------
+tokenizers==0.20.1
+
+# -----------------------------------------------------------------------------
+# Safetensors - Safe model serialization
+# Required for Trainium optimized loading (memory mapping)
+# -----------------------------------------------------------------------------
+safetensors==0.4.5
+
+# -----------------------------------------------------------------------------
+# Datasets - Data loading and processing
+# 2.21.0 is stable, avoids caching issues in newer versions
+# -----------------------------------------------------------------------------
+datasets==2.21.0
+
+# -----------------------------------------------------------------------------
+# TRL - SFTTrainer with packing support
+# Required for efficient training with sequence packing
+# -----------------------------------------------------------------------------
+trl>=0.9.0,<0.12.0
+
+# -----------------------------------------------------------------------------
+# SciPy - Numerical computing (keep <1.13 for NumPy 1.x compatibility)
+# -----------------------------------------------------------------------------
+scipy<1.13.0
+
+# -----------------------------------------------------------------------------
+# Build tools for Flash Attention
+# -----------------------------------------------------------------------------
+packaging>=23.0
+ninja>=1.10
+
+# -----------------------------------------------------------------------------
+# Chess utilities
+# -----------------------------------------------------------------------------
+python-chess>=1.999
+
+# -----------------------------------------------------------------------------
+# Template rendering (for prompt templates)
+# -----------------------------------------------------------------------------
+jinja2>=3.1.0
+
+# -----------------------------------------------------------------------------
+# Logging and monitoring
+# -----------------------------------------------------------------------------
+tensorboard>=2.14.0
+tqdm>=4.66.0
+
+# -----------------------------------------------------------------------------
+# Testing
+# -----------------------------------------------------------------------------
+pytest>=7.4.0
+
+# -----------------------------------------------------------------------------
+# Optional: wandb for experiment tracking (better than TensorBoard on RunPod)
+# -----------------------------------------------------------------------------
+# wandb>=0.16.0
+
+# =============================================================================
+# BANNED LIBRARIES - DO NOT INSTALL
+# These break AWS Trainium compatibility due to custom CUDA kernels
+# =============================================================================
+# bitsandbytes  - BANNED: Custom CUDA kernels not supported on Neuron
+# unsloth       - BANNED: Custom Triton kernels break model export
+# =============================================================================
+
+# =============================================================================
+# Flash Attention - Install AFTER other deps
+# Use pre-built wheel for PyTorch 2.4.1 + CUDA 12.x:
+#   pip install flash-attn==2.6.3 --no-build-isolation
+# =============================================================================
