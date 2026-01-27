@@ -76,6 +76,12 @@ datasets==2.21.0
 trl>=0.9.0,<0.12.0
 
 # -----------------------------------------------------------------------------
+# Rich - Required by TRL for console output
+# TRL imports rich but pip doesn't always resolve it as a transitive dependency
+# -----------------------------------------------------------------------------
+rich>=13.0.0
+
+# -----------------------------------------------------------------------------
 # SciPy - Numerical computing (keep <1.13 for NumPy 1.x compatibility)
 # -----------------------------------------------------------------------------
 scipy<1.13.0
