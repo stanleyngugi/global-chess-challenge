@@ -47,9 +47,10 @@ peft==0.13.0
 
 # -----------------------------------------------------------------------------
 # Accelerate - Model parallelism and device mapping
-# 0.34.2 is stable companion for transformers 4.46.x
+# UPDATED: TRL's SFTConfig requires >= 1.1.0 for data_seed parameter
+# This only affects training (RunPod), not inference (Trainium uses its own AMI)
 # -----------------------------------------------------------------------------
-accelerate==0.34.2
+accelerate>=1.1.0
 
 # -----------------------------------------------------------------------------
 # Tokenizers - Rust backend for transformers
