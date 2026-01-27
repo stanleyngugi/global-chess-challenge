@@ -72,9 +72,10 @@ datasets==2.21.0
 
 # -----------------------------------------------------------------------------
 # TRL - SFTTrainer with packing support
-# Required for efficient training with sequence packing
+# UPDATED: 0.12.0+ required for processing_class parameter and transformers 4.46.x
+# 0.12.2 is the stable version compatible with our stack
 # -----------------------------------------------------------------------------
-trl>=0.9.0,<0.12.0
+trl==0.12.2
 
 # -----------------------------------------------------------------------------
 # Rich - Required by TRL for console output
