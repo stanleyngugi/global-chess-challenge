@@ -94,36 +94,28 @@ echo ""
 
 echo "Checking training data..."
 
+# If training file doesn't exist, download after deps are installed
+DATA_NEEDS_DOWNLOAD=false
 if [ ! -f "$TRAIN_FILE" ]; then
-    echo "ERROR: Training file not found: $TRAIN_FILE"
-    echo ""
-    echo "Expected files:"
-    echo "  - src/division2/data/train.jsonl (weight-free, for packing)"
-    echo "  - src/division2/data/val.jsonl"
-    echo ""
-    echo "If you have 'train (1).jsonl', run the weight removal script first:"
-    echo "  python scripts/remove_weights.py"
-    exit 1
-fi
-
-# Count samples
-TRAIN_SAMPLES=$(wc -l < "$TRAIN_FILE")
-echo "Training samples: $TRAIN_SAMPLES"
-
-if [ -f "$VAL_FILE" ]; then
-    VAL_SAMPLES=$(wc -l < "$VAL_FILE")
-    echo "Validation samples: $VAL_SAMPLES"
-fi
-
-# Verify data format (no weights)
-FIRST_LINE=$(head -1 "$TRAIN_FILE")
-if echo "$FIRST_LINE" | grep -q '"weight"'; then
-    echo ""
-    echo "ERROR: Training data still contains 'weight' field!"
-    echo "Packing requires weight-free data."
-    echo ""
-    echo "Run: python scripts/remove_weights.py"
-    exit 1
+    echo "Training data not found - will download after installing dependencies"
+    DATA_NEEDS_DOWNLOAD=true
+else
+    # Count samples
+    TRAIN_SAMPLES=$(wc -l < "$TRAIN_FILE")
+    echo "Training samples: $TRAIN_SAMPLES"
+    
+    if [ -f "$VAL_FILE" ]; then
+        VAL_SAMPLES=$(wc -l < "$VAL_FILE")
+        echo "Validation samples: $VAL_SAMPLES"
+    fi
+    
+    # Verify data format (no weights)
+    FIRST_LINE=$(head -1 "$TRAIN_FILE")
+    if echo "$FIRST_LINE" | grep -q '"weight"'; then
+        echo ""
+        echo "WARNING: Training data contains 'weight' field."
+        echo "This will be stripped after dependencies are installed."
+    fi
 fi
 
 echo ""
@@ -178,6 +170,71 @@ pip install flash-attn==2.6.3 --no-build-isolation -q 2>/dev/null || {
 }
 
 echo ""
+
+# =============================================================================
+# Data Download (if needed)
+# =============================================================================
+
+if [ "$DATA_NEEDS_DOWNLOAD" = true ]; then
+    echo "Downloading training data from HuggingFace..."
+    echo ""
+    echo "  Dataset: stan4u/global_chess_trainining"
+    echo "  This may take a few minutes (617MB)..."
+    echo ""
+    
+    python3 << 'DOWNLOAD_DATA'
+import os
+from datasets import load_dataset
+
+DATASET_NAME = "stan4u/global_chess_trainining"
+print(f"  Loading dataset: {DATASET_NAME}")
+
+ds = load_dataset(DATASET_NAME)
+os.makedirs("src/division2/data", exist_ok=True)
+
+if "train" in ds:
+    print(f"  Saving train split: {len(ds['train'])} samples")
+    ds["train"].to_json("src/division2/data/train.jsonl", lines=True)
+else:
+    print(f"  Saving dataset: {len(ds)} samples")
+    ds.to_json("src/division2/data/train.jsonl", lines=True)
+
+if "validation" in ds:
+    print(f"  Saving validation split: {len(ds['validation'])} samples")
+    ds["validation"].to_json("src/division2/data/val.jsonl", lines=True)
+elif "test" in ds:
+    print(f"  Saving test split as validation: {len(ds['test'])} samples")
+    ds["test"].to_json("src/division2/data/val.jsonl", lines=True)
+
+print("")
+print("  Data download complete!")
+DOWNLOAD_DATA
+
+    if [ ! -f "$TRAIN_FILE" ]; then
+        echo "ERROR: Failed to download training data!"
+        exit 1
+    fi
+    
+    TRAIN_SAMPLES=$(wc -l < "$TRAIN_FILE")
+    echo "Downloaded: $TRAIN_SAMPLES training samples"
+    echo ""
+fi
+
+# Strip weights if present (required for packing)
+if [ -f "$TRAIN_FILE" ] && head -1 "$TRAIN_FILE" | grep -q '"weight"'; then
+    echo "Stripping 'weight' field from training data..."
+    python3 << 'STRIP_WEIGHTS'
+import json
+with open("src/division2/data/train.jsonl", "r") as f:
+    lines = f.readlines()
+with open("src/division2/data/train.jsonl", "w") as f:
+    for line in lines:
+        data = json.loads(line)
+        data.pop("weight", None)
+        f.write(json.dumps(data) + "\n")
+print("  Weights stripped successfully!")
+STRIP_WEIGHTS
+fi
 
 # =============================================================================
 # HuggingFace Authentication

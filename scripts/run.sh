@@ -71,46 +71,16 @@ if [ ${#HF_TOKEN} -lt 10 ]; then
     exit 1
 fi
 
-# Check training data exists
+# Training data paths (will check/download after deps installed)
 TRAIN_FILE="src/division2/data/train.jsonl"
 VAL_FILE="src/division2/data/val.jsonl"
 
-if [ ! -f "$TRAIN_FILE" ]; then
-    echo ""
-    echo "=============================================================="
-    echo "TRAINING DATA NOT FOUND"
-    echo "=============================================================="
-    echo ""
-    echo "The training data (617MB) is too large for GitHub."
-    echo "You need to upload it separately."
-    echo ""
-    echo "Option 1: Copy from existing RunPod workspace"
-    echo "  cp /workspace/data/train.jsonl src/division2/data/"
-    echo ""
-    echo "Option 2: Upload via RunPod file manager"
-    echo "  Use the web UI to upload train.jsonl to:"
-    echo "  $(pwd)/src/division2/data/"
-    echo ""
-    echo "Option 3: Download from HuggingFace (if uploaded)"
-    echo "  huggingface-cli download stanleyngugi/chess-data train.jsonl \\"
-    echo "    --local-dir src/division2/data/"
-    echo ""
-    echo "After uploading, run this script again."
-    exit 1
-fi
-
-TRAIN_COUNT=$(wc -l < "$TRAIN_FILE")
-echo "  Training data: $TRAIN_COUNT samples"
-
-# Check for weight field (incompatible with packing)
-if head -1 "$TRAIN_FILE" | grep -q '"weight"'; then
-    echo ""
-    echo "WARNING: Training data contains 'weight' field."
-    echo "This is incompatible with packing. Stripping weights..."
-    echo ""
-    
-    # Strip weights inline (bash only, no Python needed)
-    # We'll handle this in Python after deps are installed
+# Quick check if data exists (detailed download handled in Phase 1.5)
+if [ -f "$TRAIN_FILE" ]; then
+    TRAIN_COUNT=$(wc -l < "$TRAIN_FILE")
+    echo "  Training data: $TRAIN_COUNT samples (local)"
+else
+    echo "  Training data: will download from HuggingFace"
 fi
 
 echo ""
@@ -155,6 +125,89 @@ pip install flash-attn==2.6.3 --no-build-isolation -q 2>/dev/null || {
 echo ""
 echo "[Phase 1] Dependencies installed!"
 echo ""
+
+# =============================================================================
+# PHASE 1.5: Download Training Data (if not present)
+# =============================================================================
+
+if [ ! -f "$TRAIN_FILE" ]; then
+    echo "[Phase 1.5] Downloading training data from HuggingFace..."
+    echo ""
+    echo "  Dataset: stan4u/global_chess_trainining"
+    echo "  This may take a few minutes (617MB)..."
+    echo ""
+    
+    python3 << 'DOWNLOAD_DATA'
+import os
+from datasets import load_dataset
+
+# HuggingFace dataset location
+DATASET_NAME = "stan4u/global_chess_trainining"
+
+print(f"  Loading dataset: {DATASET_NAME}")
+
+# Load dataset from HuggingFace
+ds = load_dataset(DATASET_NAME)
+
+# Create output directory
+os.makedirs("src/division2/data", exist_ok=True)
+
+# Save training data
+if "train" in ds:
+    print(f"  Saving train split: {len(ds['train'])} samples")
+    ds["train"].to_json("src/division2/data/train.jsonl", lines=True)
+else:
+    # If no splits, use the entire dataset
+    print(f"  Saving dataset: {len(ds)} samples")
+    ds.to_json("src/division2/data/train.jsonl", lines=True)
+
+# Save validation data if present
+if "validation" in ds:
+    print(f"  Saving validation split: {len(ds['validation'])} samples")
+    ds["validation"].to_json("src/division2/data/val.jsonl", lines=True)
+elif "test" in ds:
+    print(f"  Saving test split as validation: {len(ds['test'])} samples")
+    ds["test"].to_json("src/division2/data/val.jsonl", lines=True)
+
+print("")
+print("  Data download complete!")
+DOWNLOAD_DATA
+
+    # Verify download succeeded
+    if [ ! -f "$TRAIN_FILE" ]; then
+        echo ""
+        echo "ERROR: Failed to download training data!"
+        echo "Please check your HuggingFace token and dataset access."
+        exit 1
+    fi
+    
+    TRAIN_COUNT=$(wc -l < "$TRAIN_FILE")
+    echo "  Downloaded: $TRAIN_COUNT training samples"
+    echo ""
+else
+    echo "[Phase 1.5] Training data already present, skipping download."
+    echo ""
+fi
+
+# Check for weight field (incompatible with packing) - now that we have data
+if [ -f "$TRAIN_FILE" ] && head -1 "$TRAIN_FILE" | grep -q '"weight"'; then
+    echo "  Stripping 'weight' field from training data (required for packing)..."
+    python3 << 'STRIP_WEIGHTS'
+import json
+
+# Read, strip weights, write back
+with open("src/division2/data/train.jsonl", "r") as f:
+    lines = f.readlines()
+
+with open("src/division2/data/train.jsonl", "w") as f:
+    for line in lines:
+        data = json.loads(line)
+        data.pop("weight", None)
+        f.write(json.dumps(data) + "\n")
+
+print("  Weights stripped successfully!")
+STRIP_WEIGHTS
+fi
 
 # =============================================================================
 # PHASE 2: Verify Environment (NOW we can use Python)

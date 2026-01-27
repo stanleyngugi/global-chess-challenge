@@ -2,58 +2,27 @@
 
 Chess AI for the AIcrowd Global Chess Challenge 2025.
 
-## Quick Start (RunPod)
+## Quick Start (One Command!)
 
 ```bash
-# 1. Clone repo
+# On a fresh RunPod GPU instance (web terminal recommended):
 git clone https://github.com/stanleyngugi/global-chess-challenge.git
 cd global-chess-challenge
-
-# 2. Upload training data (617MB - too large for GitHub)
-# Use RunPod file manager or copy from existing workspace:
-cp /path/to/train.jsonl src/division2/data/
-
-# 3. Run training
 HF_TOKEN=hf_your_token ./scripts/run.sh
 ```
 
-The script handles everything:
-- Installs all dependencies (PyTorch, Flash Attention, etc.)
-- Authenticates with HuggingFace
-- Validates the environment
-- Starts training (~12 hours)
+That's it! The script automatically:
+1. Installs all dependencies (PyTorch, Flash Attention, etc.)
+2. Downloads training data from HuggingFace (617MB)
+3. Authenticates with HuggingFace
+4. Validates the environment
+5. Starts training (~12 hours)
 
 ## Prerequisites
 
 1. **GPU Instance**: RunPod A40/A100 (40-80GB VRAM)
 2. **HuggingFace Token**: Get from https://huggingface.co/settings/tokens
 3. **Llama Access**: Accept license at https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct
-4. **Training Data**: `train.jsonl` (617MB) - must upload separately
-
-## Training Data
-
-The training data is too large for GitHub (617MB). Options:
-
-1. **Copy from existing RunPod workspace:**
-   ```bash
-   cp /workspace/data/train.jsonl src/division2/data/
-   ```
-
-2. **Upload via RunPod file manager:**
-   Use the web UI to upload to `src/division2/data/`
-
-3. **Download from HuggingFace (if uploaded):**
-   ```bash
-   huggingface-cli download stanleyngugi/chess-data train.jsonl --local-dir src/division2/data/
-   ```
-
-## Alternative: tmux (Survives SSH Disconnect)
-
-```bash
-HF_TOKEN=hf_your_token ./scripts/start_training_tmux.sh
-```
-
-Reconnect after disconnect: `tmux attach -t chess-training`
 
 ## After Training (~12 hours)
 
@@ -68,6 +37,14 @@ python -m src.division2.training.merge_adapters \
 huggingface-cli upload YOUR_USERNAME/chess-llama /workspace/output/chess-merged
 ```
 
+## Alternative: tmux (Survives SSH Disconnect)
+
+```bash
+HF_TOKEN=hf_your_token ./scripts/start_training_tmux.sh
+```
+
+Reconnect after disconnect: `tmux attach -t chess-training`
+
 ## Project Structure
 
 ```
@@ -78,7 +55,7 @@ huggingface-cli upload YOUR_USERNAME/chess-llama /workspace/output/chess-merged
 ├── src/
 │   ├── division2/
 │   │   ├── data/
-│   │   │   ├── train.jsonl    # 756K training samples
+│   │   │   ├── train.jsonl    # 756K samples (auto-downloaded)
 │   │   │   └── val.jsonl      # 11K validation samples
 │   │   └── training/
 │   │       ├── train_lora.py      # LoRA fine-tuning
@@ -99,6 +76,19 @@ huggingface-cli upload YOUR_USERNAME/chess-llama /workspace/output/chess-merged
 | Packing | Enabled | 10x speedup |
 
 **Estimated time:** ~12 hours on A40/A100
+
+## Training Data
+
+Training data is automatically downloaded from HuggingFace: `stan4u/global_chess_trainining`
+
+If you need to use local data instead:
+```bash
+# Copy from existing RunPod workspace
+cp /workspace/data/train.jsonl src/division2/data/
+
+# Then run training (will skip download)
+HF_TOKEN=hf_your_token ./scripts/run.sh
+```
 
 ## Competition Details
 
